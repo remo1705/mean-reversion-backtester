@@ -1,8 +1,10 @@
 .venv/
 __pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
+*.pyc
+*.pyo
 .DS_Store
 data/*.csv
 data/*.html
+*.egg-info/
+dist/
+build/

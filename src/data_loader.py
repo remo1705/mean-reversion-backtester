@@ -39,7 +39,11 @@ def fetch_constituents(
         DataFrame with columns ``symbol`` and ``company`` (when available).
     """
     output_path = save_path or config.constituents_path
-    tables = pd.read_html(config.wikipedia_url, match="Symbol")
+    tables = pd.read_html(
+        config.wikipedia_url,
+        match="Symbol",
+        storage_options={"User-Agent": "mean-reversion-backtester/1.0"},
+    )
     if not tables:
         raise ValueError("Could not find DJIA constituents table on Wikipedia.")
 

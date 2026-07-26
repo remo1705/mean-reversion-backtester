@@ -8,10 +8,6 @@ Note:
 
 from __future__ import annotations
 
-import json
-import os
-import ssl
-import time
 from io import StringIO
 from pathlib import Path
 
@@ -20,27 +16,6 @@ import requests
 import yfinance as yf
 
 from src.config import DEFAULT_CONFIG, BacktestConfig
-
-# #region agent log
-_DEBUG_LOG_PATH = Path(__file__).resolve().parent.parent / ".cursor" / "debug-583489.log"
-
-
-def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    payload = {
-        "sessionId": "583489",
-        "runId": "post-fix",
-        "hypothesisId": hypothesis_id,
-        "location": location,
-        "message": message,
-        "data": data,
-        "timestamp": int(time.time() * 1000),
-    }
-    _DEBUG_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with _DEBUG_LOG_PATH.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(payload) + "\n")
-
-
-# #endregion
 
 
 def _normalize_symbol(symbol: str) -> str:
@@ -67,24 +42,6 @@ def fetch_constituents(
     """
     output_path = save_path or config.constituents_path
 
-    # #region agent log
-    import sys
-
-    verify_paths = ssl.get_default_verify_paths()
-    openssl_cafile = verify_paths.openssl_cafile
-    _agent_log(
-        "A",
-        "data_loader.py:fetch_constituents",
-        "ssl_ca_bundle_state",
-        {
-            "python": sys.executable,
-            "openssl_cafile": openssl_cafile,
-            "openssl_cafile_exists": os.path.exists(openssl_cafile) if openssl_cafile else False,
-            "SSL_CERT_FILE": os.environ.get("SSL_CERT_FILE"),
-        },
-    )
-    # #endregion
-
     # requests uses certifi's CA bundle, avoiding macOS Python.org missing cert.pem
     response = requests.get(
         config.wikipedia_url,
@@ -93,27 +50,7 @@ def fetch_constituents(
     )
     response.raise_for_status()
 
-    # #region agent log
-    _agent_log(
-        "F",
-        "data_loader.py:fetch_constituents",
-        "requests_fetch_ok",
-        {"status_code": response.status_code, "html_len": len(response.text)},
-    )
-    # #endregion
-
     tables = pd.read_html(StringIO(response.text), match="Symbol")
-    # #region agent log
-    _agent_log(
-        "F",
-        "data_loader.py:fetch_constituents",
-        "read_html_ok",
-        {
-            "num_tables": len(tables),
-            "columns": list(tables[0].columns) if tables else [],
-        },
-    )
-    # #endregion
     if not tables:
         raise ValueError("Could not find DJIA constituents table on Wikipedia.")
 
@@ -216,20 +153,6 @@ def ensure_data(
 ) -> pd.DataFrame:
     """Fetch or load DJIA data, optionally refreshing cached CSV files."""
     config.data_dir.mkdir(parents=True, exist_ok=True)
-
-    # #region agent log
-    _agent_log(
-        "E",
-        "data_loader.py:ensure_data",
-        "cache_state",
-        {
-            "refresh": refresh,
-            "constituents_exists": config.constituents_path.exists(),
-            "prices_exists": config.prices_path.exists(),
-            "will_fetch_constituents": refresh or not config.constituents_path.exists(),
-        },
-    )
-    # #endregion
 
     if refresh or not config.constituents_path.exists():
         constituents = fetch_constituents(config=config)
